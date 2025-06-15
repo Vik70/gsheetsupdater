@@ -13,7 +13,7 @@ load_dotenv()
 # --- CONFIG ---
 SHEET_NAME = "VIK SHEET"
 TAB_NAME = "Rapesco £2500"
-CREDS_PATH = "creds/google-sheets-key.json"
+CREDS_PATH = "/etc/secrets/google-sheets-key.json"
 KEEPA_API_KEY = os.getenv('KEEPA_API_KEY')
 PROGRESS_FILE = "progress.json"
 DISCORD_WEBHOOK_URL = os.getenv('DISCORD_WEBHOOK_URL')  # Add this to your .env file
