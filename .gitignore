@@ -1,2 +1,3 @@
 #.gitignore
 creds/google-sheets-key.json
+.env
