@@ -14,7 +14,6 @@ class ProfitBot(commands.Bot):
     def __init__(self):
         intents = discord.Intents.default()
         intents.message_content = True
-        intents.voice = False # Explicitly disable voice
         super().__init__(command_prefix="!", intents=intents)
         self.active_updates = {}  # Track active updates by channel ID
 
