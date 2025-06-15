@@ -11,8 +11,8 @@ RUN python --version
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the credentials file
-COPY creds/google-sheets-key.json creds/
+# # Copy the credentials file (This line is commented out as the file is handled by Render's Secret Files)
+# COPY creds/google-sheets-key.json creds/
 
 # Copy the rest of your application code
 COPY . .
