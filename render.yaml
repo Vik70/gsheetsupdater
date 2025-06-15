@@ -1,9 +1,6 @@
 services:
-  - type: web
+  - type: docker
     name: profit-bot
-    env: python
-    buildCommand: pip install -r requirements.txt
-    startCommand: python discord_bot.py
     envVars:
       - key: DISCORD_TOKEN
         sync: false
