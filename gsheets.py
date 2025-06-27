@@ -454,9 +454,9 @@ def update_sheet(ws):
     total_rows = len(rows)
     processed_rows = 0
     profit_items = {
-        'high_profit': [],    # >£100
-        'medium_profit': [],  # >£50
-        'low_profit': []      # >£30
+        'high_profit': [],    # >100% margin
+        'medium_profit': [],  # >50% margin
+        'low_profit': []      # >30% margin
     }
 
     # Get the spreadsheet object and sheet ID for conditional formatting
@@ -601,26 +601,39 @@ def update_sheet(ws):
 
             fba_fees = product_data.get("fbaFees") or {}
             profit, roi = calculate_profits(buy_price, sell_price, fba_fees)
-            monthly_profit = round(profit * spm / (sellers + 1), 2)
+            # Calculate profit margin as (profit / sell_price) * 100
+            profit_margin = round((profit / sell_price) * 100, 2) if sell_price > 0 else 0.0
 
             # Log summary
             print(f"ASIN: {asin}")
             print(f"Buy: £{buy_price} | Sell: £{sell_price} | SPM: {spm} | Sellers: {sellers}")
-            print(f"Profit/unit: £{profit} | Monthly Profit: £{monthly_profit} | ROI: {roi}%")
+            print(f"Profit/unit: £{profit} | Profit Margin: {profit_margin}% | ROI: {roi}%")
 
-            # Add to profit categories
-            item_info = f"ASIN: {asin} | Monthly Profit: £{monthly_profit} | ROI: {roi}%"
-            if monthly_profit > 100:
+            # Add to profit categories and send notifications based on margin
+            item_info = f"ASIN: {asin} | Profit Margin: {profit_margin}% | ROI: {roi}%"
+            if profit_margin > 15:
                 profit_items['high_profit'].append(item_info)
-                profit_message = f"💰 HIGH PROFIT FOUND!\nASIN: {asin}\nMonthly Profit: £{monthly_profit}\nROI: {roi}%\nBuy Price: £{buy_price}\nSell Price: £{sell_price}\nSPM: {spm}"
+                profit_message = (
+                    f"@everyone :rotating_light: :red_circle: **BIG PROFIT MARGIN ALERT!** :red_circle: :rotating_light:\n"
+                    f"ASIN: {asin}\n"
+                    f"Profit Margin: **{profit_margin}%**\n"
+                    f"ROI: {roi}%\n"
+                    f"Buy Price: £{buy_price}\n"
+                    f"Sell Price: £{sell_price}\n"
+                    f"SPM: {spm}"
+                )
                 send_discord_message(profit_message)
-            elif monthly_profit > 50:
+            elif profit_margin > 10:
                 profit_items['medium_profit'].append(item_info)
-                profit_message = f"💎 MEDIUM PROFIT FOUND!\nASIN: {asin}\nMonthly Profit: £{monthly_profit}\nROI: {roi}%\nBuy Price: £{buy_price}\nSell Price: £{sell_price}\nSPM: {spm}"
-                send_discord_message(profit_message)
-            elif monthly_profit > 30:
-                profit_items['low_profit'].append(item_info)
-                profit_message = f"✨ LOW PROFIT FOUND!\nASIN: {asin}\nMonthly Profit: £{monthly_profit}\nROI: {roi}%\nBuy Price: £{buy_price}\nSell Price: £{sell_price}\nSPM: {spm}"
+                profit_message = (
+                    f"🟢 PROFIT MARGIN ALERT!\n"
+                    f"ASIN: {asin}\n"
+                    f"Profit Margin: {profit_margin}%\n"
+                    f"ROI: {roi}%\n"
+                    f"Buy Price: £{buy_price}\n"
+                    f"Sell Price: £{sell_price}\n"
+                    f"SPM: {spm}"
+                )
                 send_discord_message(profit_message)
 
             try:
@@ -632,7 +645,7 @@ def update_sheet(ws):
                     f"£{profit}",          # F
                     spm,                   # G
                     sellers,               # H
-                    f"£{monthly_profit}",  # I
+                    f"{profit_margin}%",   # I
                 ]]
                 ws.update(f"D{idx}:I{idx}", values)
             except Exception as e:
