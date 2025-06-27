@@ -99,13 +99,13 @@ async def update(interaction: discord.Interaction, sheet: str = "all"):
 
         if all_profit_items['high_profit']:
             embed.add_field(
-                name="🔴 High Profit Items (>£100)",
+                name="🔴 High Profit Items (>15%)",
                 value="\n".join(all_profit_items['high_profit']),
                 inline=False
             )
         if all_profit_items['medium_profit']:
             embed.add_field(
-                name="🟡 Medium Profit Items (>£50)",
+                name="🟡 Medium Profit Items (>10%)",
                 value="\n".join(all_profit_items['medium_profit']),
                 inline=False
             )
@@ -138,6 +138,50 @@ async def stop(interaction: discord.Interaction):
         await interaction.response.send_message("🛑 Update process will stop after current operation completes.")
     else:
         await interaction.response.send_message("❌ No active update process to stop.", ephemeral=True)
+
+@bot.tree.command(name="updateall", description="Update profit calculations for ALL sheets (only pings for margin > 15%)")
+async def updateall(interaction: discord.Interaction):
+    # Check if user has admin rights
+    if not interaction.user.guild_permissions.administrator:
+        await interaction.response.send_message("❌ You need administrator rights to use this command.", ephemeral=True)
+        return
+
+    # Check if there's already an active update in this channel
+    if interaction.channel_id in bot.active_updates:
+        await interaction.response.send_message("❌ An update is already in progress in this channel. Use `/stop` to cancel it first.", ephemeral=True)
+        return
+
+    await interaction.response.send_message("🔄 Starting update process for ALL sheets...")
+
+    try:
+        bot.active_updates[interaction.channel_id] = True
+        all_profit_items = await asyncio.to_thread(update_all_sheets)
+        # Only process high_profit items (profit margin > 15%)
+        if all_profit_items['high_profit']:
+            for item in all_profit_items['high_profit']:
+                # item is a dict from gsheets.py
+                embed = discord.Embed(
+                    title=f"🔥 A2A Arbitrage: {item.get('brand', '')} {item.get('asin', '')}",
+                    url=item.get('asin_url', ''),
+                    color=discord.Color.red()
+                )
+                embed.add_field(name="Brand", value=f"`{item.get('brand', 'N/A')}`", inline=True)
+                embed.add_field(name="ASIN", value=f"`{item.get('asin', 'N/A')}`", inline=True)
+                embed.add_field(name="Profit Margin", value=f"**{item.get('profit_margin', 0)}%**", inline=True)
+                embed.add_field(name="Buy Price", value=f"£{item.get('buy_price', 0)}", inline=True)
+                embed.add_field(name="Sell Price", value=f"£{item.get('sell_price', 0)}", inline=True)
+                embed.add_field(name="ROI", value=f"{item.get('roi', 0)}%", inline=True)
+                embed.add_field(name="SPM", value=f"{item.get('spm', 'N/A')}", inline=True)
+                if item.get('image_url'):
+                    embed.set_image(url=item['image_url'])
+                embed.set_footer(text="A2A Arbitrage Bot • FBA Optimised")
+                await interaction.channel.send(content="@everyone :rotating_light: :red_circle: **BIG PROFIT MARGIN ALERT!** :red_circle: :rotating_light:", embed=embed)
+        else:
+            await interaction.channel.send("No high profit margin items (>15%) found.")
+    except Exception as e:
+        await interaction.channel.send(f"❌ An error occurred: {str(e)}")
+    finally:
+        bot.active_updates.pop(interaction.channel_id, None)
 
 # Run the bot
 try:
