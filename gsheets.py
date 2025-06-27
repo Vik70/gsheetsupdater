@@ -549,9 +549,10 @@ def update_sheet(ws):
         # Collect ASINs and buy prices for the batch
         for idx, row in enumerate(batch_rows, start=i+2):
             asin_link = row[0]
+            asin_url = row[9] if len(row) > 9 else ''  # Column J (zero-indexed 9)
+            brand = row[1] if len(row) > 1 else ''
             if not asin_link.strip():
                 continue
-                
             asin = asin_link.split("/dp/")[-1].split("/")[0]
             try:
                 buy_price = float(row[2].replace("£", ""))
@@ -609,32 +610,20 @@ def update_sheet(ws):
             print(f"Buy: £{buy_price} | Sell: £{sell_price} | SPM: {spm} | Sellers: {sellers}")
             print(f"Profit/unit: £{profit} | Profit Margin: {profit_margin}% | ROI: {roi}%")
 
-            # Add to profit categories and send notifications based on margin
-            item_info = f"ASIN: {asin} | Profit Margin: {profit_margin}% | ROI: {roi}%"
+            # Only notify and add to high_profit if margin > 15%
             if profit_margin > 15:
-                profit_items['high_profit'].append(item_info)
-                profit_message = (
-                    f"@everyone :rotating_light: :red_circle: **BIG PROFIT MARGIN ALERT!** :red_circle: :rotating_light:\n"
-                    f"ASIN: {asin}\n"
-                    f"Profit Margin: **{profit_margin}%**\n"
-                    f"ROI: {roi}%\n"
-                    f"Buy Price: £{buy_price}\n"
-                    f"Sell Price: £{sell_price}\n"
-                    f"SPM: {spm}"
-                )
-                send_discord_message(profit_message)
-            elif profit_margin > 10:
-                profit_items['medium_profit'].append(item_info)
-                profit_message = (
-                    f"🟢 PROFIT MARGIN ALERT!\n"
-                    f"ASIN: {asin}\n"
-                    f"Profit Margin: {profit_margin}%\n"
-                    f"ROI: {roi}%\n"
-                    f"Buy Price: £{buy_price}\n"
-                    f"Sell Price: £{sell_price}\n"
-                    f"SPM: {spm}"
-                )
-                send_discord_message(profit_message)
+                profit_item = {
+                    'asin': asin,
+                    'asin_url': asin_url,
+                    'brand': brand,
+                    'buy_price': buy_price,
+                    'sell_price': sell_price,
+                    'profit_margin': profit_margin,
+                    'roi': roi,
+                    'spm': spm,
+                    'image_url': product_data.get('imagesCSV', [''])[0] if product_data.get('imagesCSV') else ''
+                }
+                profit_items['high_profit'].append(profit_item)
 
             try:
                 # Batch update A, E, F, G, H, I (preserving B-D)
